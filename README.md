@@ -1,0 +1,24 @@
+# Still Streaming?
+
+A daily streaming-trivia game for Reddit, powered by real availability changes
+from galaxymovies.app.
+
+- **Daily quiz** (15:00 UTC): 3–5 questions built from this week's actual
+  arrivals/departures across Netflix, Hulu, Disney+ and more.
+- **Weekly prediction** (Monday): the community votes on which titles leave a
+  headline service this week; scored Sunday against the real diffs.
+
+## Fetch Domains
+
+The following domains are requested for this app:
+
+- `www.galaxymovies.app` — fetches read-only JSON payloads
+  (`/api/trivia/daily`, `/api/trivia/weekly`, `/api/trivia/resolve`) containing
+  the day's questions, the weekly prediction slate, and the slate's resolution.
+  The app performs no other outbound requests.
+
+## Commands
+
+- `npm run build` — client + server bundles into `dist/`
+- `npm run dev` — `devvit playtest` against a test subreddit
+- `npm run upload` — upload a version to the Developer Portal

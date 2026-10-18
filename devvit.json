@@ -1,0 +1,63 @@
+{
+  "$schema": "https://developers.reddit.com/schema/config-file.v1.json",
+  "name": "still-streaming",
+  "post": {
+    "dir": "dist/client",
+    "entrypoints": {
+      "default": { "entry": "index.html" }
+    }
+  },
+  "server": {
+    "dir": "dist/server",
+    "entry": "index.cjs"
+  },
+  "permissions": {
+    "reddit": true,
+    "redis": true,
+    "http": {
+      "enable": true,
+      "domains": ["www.galaxymovies.app"]
+    }
+  },
+  "scheduler": {
+    "tasks": {
+      "daily-quiz": {
+        "endpoint": "/internal/scheduler/daily-quiz",
+        "cron": "0 15 * * *"
+      },
+      "weekly-slate": {
+        "endpoint": "/internal/scheduler/weekly-slate",
+        "cron": "30 15 * * 1"
+      },
+      "weekly-resolve": {
+        "endpoint": "/internal/scheduler/weekly-resolve",
+        "cron": "0 22 * * 0"
+      }
+    }
+  },
+  "menu": {
+    "items": [
+      {
+        "label": "Post today's quiz",
+        "description": "Create today's Still Streaming? quiz post manually",
+        "forUserType": "moderator",
+        "location": "subreddit",
+        "endpoint": "/internal/menu/quiz-now"
+      },
+      {
+        "label": "Post this week's prediction",
+        "description": "Create the weekly prediction slate post manually",
+        "forUserType": "moderator",
+        "location": "subreddit",
+        "endpoint": "/internal/menu/slate-now"
+      },
+      {
+        "label": "Resolve last week's prediction",
+        "description": "Score the previous weekly prediction against real departures",
+        "forUserType": "moderator",
+        "location": "subreddit",
+        "endpoint": "/internal/menu/resolve-now"
+      }
+    ]
+  }
+}

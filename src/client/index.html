@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Still Streaming?</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body {
+        background: #14181c;
+        color: #e2e8f0;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        min-height: 100vh;
+      }
+      #root { max-width: 560px; margin: 0 auto; padding: 24px 16px 48px; }
+      .brand { color: #7aa2e0; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 4px; }
+      h1 { font-size: 22px; margin-bottom: 4px; }
+      .sub { color: #94a3b8; font-size: 13px; margin-bottom: 20px; }
+      .card { background: #1a2028; border: 1px solid #2a3442; border-radius: 12px; padding: 18px; margin-bottom: 14px; }
+      .prompt { font-size: 16px; font-weight: 600; margin-bottom: 14px; }
+      .opt {
+        display: block; width: 100%; text-align: left; cursor: pointer;
+        background: #232b36; color: #e2e8f0; border: 1px solid #2f3a49;
+        border-radius: 10px; padding: 12px 14px; font-size: 14px; margin-bottom: 8px;
+        transition: border-color 0.15s, background 0.15s;
+      }
+      .opt:hover:not(:disabled) { border-color: #2b6cb0; background: #26303d; }
+      .opt:disabled { cursor: default; opacity: 0.85; }
+      .opt.correct { background: #1c3a2a; border-color: #38a169; }
+      .opt.wrong { background: #3a1f22; border-color: #c53030; }
+      .opt.dim { opacity: 0.5; }
+      .meta { display: flex; justify-content: space-between; color: #94a3b8; font-size: 12px; margin-bottom: 14px; }
+      .link { display: inline-block; margin-top: 10px; color: #7aa2e0; font-size: 13px; }
+      .primary {
+        background: #2b6cb0; color: #fff; border: none; border-radius: 10px;
+        padding: 12px 18px; font-size: 14px; font-weight: 600; cursor: pointer; width: 100%;
+      }
+      .primary:disabled { opacity: 0.5; cursor: default; }
+      .score-big { font-size: 34px; font-weight: 700; color: #7aa2e0; }
+      .center { text-align: center; }
+      .row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #232b36; font-size: 14px; }
+      .vote-opt { display: flex; align-items: center; gap: 10px; }
+      .vote-opt input { accent-color: #2b6cb0; width: 16px; height: 16px; }
+      .toast { color: #68d391; font-size: 13px; margin-top: 8px; }
+      .err { color: #fc8181; font-size: 13px; margin-top: 8px; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="./main.tsx"></script>
+  </body>
+</html>
