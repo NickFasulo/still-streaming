@@ -4,7 +4,9 @@
   "post": {
     "dir": "dist/client",
     "entrypoints": {
-      "default": { "entry": "index.html" }
+      "default": {
+        "entry": "index.html"
+      }
     }
   },
   "server": {
@@ -16,7 +18,9 @@
     "redis": true,
     "http": {
       "enable": true,
-      "domains": ["www.galaxymovies.app"]
+      "domains": [
+        "www.galaxymovies.app"
+      ]
     }
   },
   "scheduler": {
@@ -59,5 +63,8 @@
         "endpoint": "/internal/menu/resolve-now"
       }
     ]
+  },
+  "dev": {
+    "subreddit": "still_streaming_dev"
   }
 }
