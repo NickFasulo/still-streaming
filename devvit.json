@@ -11,7 +11,21 @@
   },
   "server": {
     "dir": "dist/server",
-    "entry": "index.cjs"
+    "entry": "index.cjs",
+    "externalEndpoints": {
+      "quiz-now": {
+        "endpoint": "/external/quiz-now",
+        "scopes": ["install", "global"]
+      },
+      "slate-now": {
+        "endpoint": "/external/slate-now",
+        "scopes": ["install", "global"]
+      },
+      "resolve-now": {
+        "endpoint": "/external/resolve-now",
+        "scopes": ["install", "global"]
+      }
+    }
   },
   "permissions": {
     "reddit": true,
@@ -63,8 +77,5 @@
         "endpoint": "/internal/menu/resolve-now"
       }
     ]
-  },
-  "dev": {
-    "subreddit": "still_streaming_dev"
   }
 }

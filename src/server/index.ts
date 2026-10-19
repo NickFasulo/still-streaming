@@ -304,6 +304,16 @@ const menuHandler =
     )
   }
 
+const externalHandler =
+  (fn: () => Promise<{ status: string; detail?: string }>) => async (c: any) => {
+    const result = await fn()
+    return c.json(result, result.status === 'failed' ? 500 : 200)
+  }
+
+app.post('/external/quiz-now', externalHandler(createQuizPost))
+app.post('/external/slate-now', externalHandler(createSlatePost))
+app.post('/external/resolve-now', externalHandler(() => resolveWeek()))
+
 app.post('/internal/menu/quiz-now', menuHandler(createQuizPost))
 app.post('/internal/menu/slate-now', menuHandler(createSlatePost))
 app.post('/internal/menu/resolve-now', menuHandler(() => resolveWeek()))
