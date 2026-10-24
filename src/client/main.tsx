@@ -1,3 +1,4 @@
+import { getWebViewMode, navigateTo, requestExpandedMode } from '@devvit/web/client'
 import React, { useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 
@@ -35,6 +36,62 @@ const api = async <T,>(path: string, body?: unknown): Promise<T> => {
   return data as T
 }
 
+function QuestionCard({
+  q,
+  picked,
+  revealed,
+  isLast,
+  exiting,
+  onPick,
+  onNext,
+  onExitDone
+}: {
+  q: Question
+  picked: number | undefined
+  revealed: { answerIndex: number; link: string } | undefined
+  isLast: boolean
+  exiting: boolean
+  onPick: (choice: number) => void
+  onNext: () => void
+  onExitDone?: () => void
+}) {
+  return (
+    <div className={`card qcard${exiting ? ' exit' : ''}`} onAnimationEnd={onExitDone}>
+      <div className='prompt'>{q.prompt}</div>
+      {q.options.map((opt, i) => {
+        let cls = 'opt'
+        if (picked !== undefined && revealed) {
+          if (i === revealed.answerIndex) cls += ' correct'
+          else if (i === picked) cls += ' wrong'
+          else cls += ' dim'
+        }
+        return (
+          <button key={i} className={cls} disabled={picked !== undefined} onClick={() => onPick(i)}>
+            {opt}
+          </button>
+        )
+      })}
+      {revealed && (
+        <a
+          className='link'
+          href={revealed.link}
+          onClick={(e) => {
+            e.preventDefault()
+            navigateTo(revealed.link)
+          }}
+        >
+          See the live list →
+        </a>
+      )}
+      {picked !== undefined && (
+        <button className='primary next' onClick={onNext}>
+          {isLast ? 'See results →' : 'Next →'}
+        </button>
+      )}
+    </div>
+  )
+}
+
 function Quiz({ state }: { state: State }) {
   const questions = state.questions || []
   const [picks, setPicks] = useState<Record<string, number>>(() => {
@@ -42,16 +99,22 @@ function Quiz({ state }: { state: State }) {
     for (const [k, v] of Object.entries(state.picks || {})) init[k] = Number(v)
     return init
   })
+  const [index, setIndex] = useState(() => {
+    const idx = questions.findIndex((q) => state.picks?.[q.id] === undefined)
+    return idx === -1 ? questions.length : idx
+  })
+  const [leaving, setLeaving] = useState<Question | null>(null)
   const [answers, setAnswers] = useState<Record<string, { answerIndex: number; link: string }>>({})
   const [score, setScore] = useState(state.score || 0)
   const [streak, setStreak] = useState(state.streak || 0)
   const [board, setBoard] = useState<{ userId: string; score: number }[] | null>(null)
 
-  const current = questions.find((q) => picks[q.id] === undefined)
+  const current = index < questions.length ? questions[index] : undefined
   const done = !current && questions.length > 0
   const correctCount = questions.filter((q) => answers[q.id]?.answerIndex === picks[q.id]).length
 
   const answer = async (q: Question, choice: number) => {
+    if (picks[q.id] !== undefined) return
     setPicks((p) => ({ ...p, [q.id]: choice }))
     try {
       const res = await api<{ correct: boolean; answerIndex: number; link: string; score: number; streak: number }>(
@@ -66,6 +129,13 @@ function Quiz({ state }: { state: State }) {
     }
   }
 
+  const advance = () => {
+    if (!current || leaving) return
+    setLeaving(current)
+    setIndex((i) => i + 1)
+    window.setTimeout(() => setLeaving(null), 400)
+  }
+
   if (!questions.length) {
     return <div className='card'>No quiz data for today — check back tomorrow.</div>
   }
@@ -74,45 +144,39 @@ function Quiz({ state }: { state: State }) {
     <>
       <div className='meta'>
         <span>
-          Question {Math.min(questions.length, Object.keys(picks).length + 1)} / {questions.length}
+          Question {Math.min(index + 1, questions.length)} / {questions.length}
         </span>
         <span>
           Score {score}
           {streak > 1 ? ` · streak ${streak}` : ''}
         </span>
       </div>
-      {questions.map((q) => {
-        const picked = picks[q.id]
-        const revealed = answers[q.id]
-        return (
-          <div className='card' key={q.id}>
-            <div className='prompt'>{q.prompt}</div>
-            {q.options.map((opt, i) => {
-              let cls = 'opt'
-              if (picked !== undefined && revealed) {
-                if (i === revealed.answerIndex) cls += ' correct'
-                else if (i === picked) cls += ' wrong'
-                else cls += ' dim'
-              }
-              return (
-                <button
-                  key={i}
-                  className={cls}
-                  disabled={picked !== undefined}
-                  onClick={() => answer(q, i)}
-                >
-                  {opt}
-                </button>
-              )
-            })}
-            {revealed && (
-              <a className='link' href={revealed.link} target='_blank' rel='noreferrer'>
-                See the live list →
-              </a>
-            )}
-          </div>
-        )
-      })}
+      <div className='stage'>
+        {leaving && (
+          <QuestionCard
+            q={leaving}
+            picked={picks[leaving.id]}
+            revealed={answers[leaving.id]}
+            isLast
+            exiting
+            onPick={() => {}}
+            onNext={() => {}}
+            onExitDone={() => setLeaving(null)}
+          />
+        )}
+        {current && (
+          <QuestionCard
+            key={current.id}
+            q={current}
+            picked={picks[current.id]}
+            revealed={answers[current.id]}
+            isLast={index === questions.length - 1}
+            exiting={false}
+            onPick={(choice) => answer(current, choice)}
+            onNext={advance}
+          />
+        )}
+      </div>
       {done && (
         <div className='card center'>
           <div className='brand'>Done for today</div>
@@ -174,19 +238,21 @@ function Predict({ state }: { state: State }) {
       <div className='prompt'>
         Which of these leave {state.providerLabel} this week? <span className='sub'>(pick up to 3)</span>
       </div>
-      {state.slate.map((s) => (
-        <label className='opt vote-opt' key={s.tmdbId}>
-          <input
-            type='checkbox'
-            checked={votes.includes(s.tmdbId)}
-            disabled={voted}
-            onChange={() => toggle(s.tmdbId)}
-          />
-          {s.title}
-        </label>
-      ))}
+      <div className='slate'>
+        {state.slate.map((s) => (
+          <label className='opt vote-opt' key={s.tmdbId}>
+            <input
+              type='checkbox'
+              checked={votes.includes(s.tmdbId)}
+              disabled={voted}
+              onChange={() => toggle(s.tmdbId)}
+            />
+            {s.title}
+          </label>
+        ))}
+      </div>
       {!voted ? (
-        <button className='primary' disabled={!votes.length} onClick={submit} style={{ marginTop: 8 }}>
+        <button className='primary' disabled={!votes.length} onClick={submit} style={{ marginTop: 6 }}>
           Lock in {votes.length} vote{votes.length === 1 ? '' : 's'}
         </button>
       ) : (
@@ -200,6 +266,7 @@ function Predict({ state }: { state: State }) {
 function App() {
   const [state, setState] = useState<State | null>(null)
   const [err, setErr] = useState('')
+  const [viewMode] = useState(() => getWebViewMode())
 
   useEffect(() => {
     api<State>('/api/state').then(setState).catch((e) => setErr(String(e)))
@@ -210,7 +277,23 @@ function App() {
 
   return (
     <>
-      <div className='brand'>Still Streaming? · galaxymovies.app</div>
+      <div className='top'>
+        <div className='brand'>Still Streaming?</div>
+        {viewMode === 'inline' && (
+          <button
+            className='expand'
+            onClick={(e) => {
+              try {
+                requestExpandedMode(e.nativeEvent, 'default')
+              } catch {
+                // already expanded
+              }
+            }}
+          >
+            ⤢ Fullscreen
+          </button>
+        )}
+      </div>
       <h1>{state.mode === 'predict' ? 'Weekly prediction' : 'Daily streaming trivia'}</h1>
       <div className='sub'>
         {state.mode === 'predict'
@@ -218,6 +301,18 @@ function App() {
           : 'Every question is a real change from this week.'}
       </div>
       {state.mode === 'predict' ? <Predict state={state} /> : <Quiz state={state} />}
+      <div className='footer'>
+        Data:{' '}
+        <a
+          href='https://www.galaxymovies.app'
+          onClick={(e) => {
+            e.preventDefault()
+            navigateTo('https://www.galaxymovies.app')
+          }}
+        >
+          galaxymovies.app
+        </a>
+      </div>
     </>
   )
 }

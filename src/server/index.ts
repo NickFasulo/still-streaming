@@ -87,6 +87,7 @@ async function createQuizPost(): Promise<{ status: string; detail?: string }> {
     title: `Still Streaming? — today's streaming trivia`,
     entry: 'default',
     postData: { mode: 'quiz', date: payload.date },
+    styles: { heightPixels: 512, backgroundColor: '#14181c' },
     textFallback: {
       text: `**Still Streaming? — daily streaming trivia**\n\n${payload.questions.length} questions from this week's real streaming changes. Open on the Reddit app or new Reddit to play. Data: https://www.galaxymovies.app`
     }
@@ -109,6 +110,7 @@ async function createSlatePost(): Promise<{ status: string; detail?: string }> {
     title: `Prediction round: what leaves ${payload.providerLabel} this week?`,
     entry: 'default',
     postData: { mode: 'predict', week: payload.week },
+    styles: { heightPixels: 512, backgroundColor: '#14181c' },
     textFallback: {
       text: `**Prediction round** — which titles leave ${payload.providerLabel} this week? Vote on new Reddit or the app. Data: https://www.galaxymovies.app`
     }
