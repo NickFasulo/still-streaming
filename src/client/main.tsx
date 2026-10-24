@@ -117,7 +117,7 @@ function Quiz({ state }: { state: State }) {
   const [score, setScore] = useState(state.score || 0)
   const [streak, setStreak] = useState(state.streak || 0)
   const [bump, setBump] = useState(0)
-  const [board, setBoard] = useState<{ userId: string; score: number }[] | null>(null)
+  const [board, setBoard] = useState<{ userId: string; username: string; score: number }[] | null>(null)
 
   const current = index < questions.length ? questions[index] : undefined
   const done = !current && questions.length > 0
@@ -209,7 +209,7 @@ function Quiz({ state }: { state: State }) {
             {correctCount}/{questions.length}
           </div>
           <div className='sub'>{streak > 1 ? `${streak}-day perfect streak` : 'New quiz drops daily at 15:00 UTC'}</div>
-          <button className='primary' onClick={() => api<{ rows: { userId: string; score: number }[] }>('/api/leaderboard').then((r) => setBoard(r.rows))}>
+          <button className='primary' onClick={() => api<{ rows: { userId: string; username: string; score: number }[] }>('/api/leaderboard').then((r) => setBoard(r.rows))}>
             Show leaderboard
           </button>
           {board && (
@@ -217,7 +217,7 @@ function Quiz({ state }: { state: State }) {
               {board.map((r, i) => (
                 <div className='row' key={r.userId}>
                   <span>
-                    #{i + 1} u/{r.userId.replace(/^t2_/, '')}
+                    #{i + 1} u/{r.username}
                   </span>
                   <span>{r.score} pts</span>
                 </div>

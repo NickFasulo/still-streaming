@@ -36,12 +36,15 @@ interface ResolvePayload {
 }
 
 const quizKey = (date: string) => `ss:quiz:${date}`
+const quizPostsKey = (date: string) => `ss:quizposts:${date}`
 const picksKey = (date: string, userId: string) => `ss:picks:${date}:${userId}`
 const scoreKey = (subId: string) => `ss:score:${subId}`
 const streakKey = (userId: string) => `ss:streak:${userId}`
 const slateKey = (week: string) => `ss:slate:${week}`
 const votesKey = (week: string, subId: string) => `ss:votes:${week}:${subId}`
 const predPostsKey = (week: string) => `ss:predposts:${week}`
+const nameKey = (uid: string) => `ss:name:${uid}`
+const answerLockKey = (date: string, uid: string, qid: string) => `ss:anslock:${date}:${uid}:${qid}`
 
 const todayUtc = () => new Date().toISOString().split('T')[0]
 const weekKeyUtc = (d = new Date()) => {
@@ -78,12 +81,16 @@ async function createQuizPost(): Promise<{ status: string; detail?: string }> {
   const payload = await gmFetch<DailyPayload>('/api/trivia/daily')
   if (!payload?.questions?.length) return { status: 'failed', detail: 'no trivia payload' }
 
-  if (await redis.get(quizKey(payload.date))) return { status: 'skipped', detail: 'already posted today' }
+  // Dedupe is per-sub — a shared "posted" flag would stop every install after
+  // the first. The marker is written only after submit succeeds, so a failed
+  // post doesn't permanently skip the day.
+  if (await redis.hGet(quizPostsKey(payload.date), subId())) {
+    return { status: 'skipped', detail: 'already posted today' }
+  }
   await redis.set(quizKey(payload.date), JSON.stringify(payload))
 
-  const subredditName = subName()
   const post = await reddit.submitCustomPost({
-    subredditName,
+    subredditName: subName(),
     title: `Still Streaming? — today's streaming trivia`,
     entry: 'default',
     postData: { mode: 'quiz', date: payload.date },
@@ -92,6 +99,7 @@ async function createQuizPost(): Promise<{ status: string; detail?: string }> {
       text: `**Still Streaming? — daily streaming trivia**\n\n${payload.questions.length} questions from this week's real streaming changes. Open on the Reddit app or new Reddit to play. Data: https://www.galaxymovies.app`
     }
   })
+  await redis.hSet(quizPostsKey(payload.date), { [subId()]: post.id })
   await redis.set(postKey(post.id), JSON.stringify({ mode: 'quiz', date: payload.date }))
   return { status: 'posted' }
 }
@@ -215,9 +223,22 @@ app.post('/api/answer', async (c) => {
   }
 
   const uid = userId()
+  // Atomic claim: concurrent submissions could both pass an hGet check and
+  // double-score; the nx lock makes the first writer win.
+  const claimed = await redis
+    .set(answerLockKey(date, uid, questionId!), '1', { nx: true, expiration: new Date(Date.now() + 60_000) })
+    .catch(() => null)
+  if (!claimed) return c.json({ error: 'already answered' }, 409)
+
   const existing = await redis.hGet(picksKey(date, uid), questionId!).catch(() => null)
   if (existing !== null && existing !== undefined) {
     return c.json({ error: 'already answered' }, 409)
+  }
+
+  // Store the username once so leaderboards can show u/name, not t2_ ids.
+  if (!(await redis.get(nameKey(uid)).catch(() => null))) {
+    const name = await reddit.getCurrentUsername().catch(() => undefined)
+    if (name) await redis.set(nameKey(uid), name).catch(() => {})
   }
 
   const correct = choice === question.answerIndex
@@ -265,16 +286,28 @@ app.post('/api/vote', async (c) => {
   const valid = new Set(slate.slate.map((s) => s.tmdbId))
   if (!tmdbIds.every((id) => valid.has(id))) return c.json({ error: 'unknown title' }, 400)
 
-  await redis.hSet(votesKey(week, subId()), { [userId()]: JSON.stringify(tmdbIds) })
+  const uid = userId()
+  // Votes lock in — a resubmission returns the recorded ballot rather than
+  // overwriting it ahead of Sunday's resolve.
+  const prev = await redis.hGet(votesKey(week, subId()), uid).catch(() => null)
+  if (prev) return c.json({ ok: true, myVotes: JSON.parse(prev) as number[] })
+
+  if (!(await redis.get(nameKey(uid)).catch(() => null))) {
+    const name = await reddit.getCurrentUsername().catch(() => undefined)
+    if (name) await redis.set(nameKey(uid), name).catch(() => {})
+  }
+  await redis.hSet(votesKey(week, subId()), { [uid]: JSON.stringify(tmdbIds) })
   return c.json({ ok: true, myVotes: tmdbIds })
 })
 
 app.get('/api/leaderboard', async (c) => {
   const all = ((await redis.hGetAll(scoreKey(subId())).catch(() => null)) || {}) as Record<string, string>
-  const rows = Object.entries(all)
+  const top = Object.entries(all)
     .map(([uid, s]) => ({ userId: uid, score: Number(s) }))
     .sort((a, b) => b.score - a.score)
     .slice(0, 10)
+  const names = await Promise.all(top.map((r) => redis.get(nameKey(r.userId)).catch(() => null)))
+  const rows = top.map((r, i) => ({ ...r, username: names[i] || r.userId.replace(/^t2_/, '') }))
   return c.json({ rows })
 })
 
