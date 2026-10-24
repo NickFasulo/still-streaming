@@ -181,18 +181,23 @@ app.get('/api/state', async (c) => {
   const date = data.date || todayUtc()
   const raw = await redis.get(quizKey(date)).catch(() => null)
   const quiz = raw ? (JSON.parse(raw) as DailyPayload) : null
-  const picks = await redis.hGetAll(picksKey(date, userId())).catch(() => null)
+  const picks = (await redis.hGetAll(picksKey(date, userId())).catch(() => null)) || {}
   const streak = (await redis.hGetAll(streakKey(userId())).catch(() => null)) as {
     count?: string
   } | null
   const score = await redis.hGet(scoreKey(subId()), userId()).catch(() => null)
+  const questions = quiz?.questions || []
+  const allAnswered = questions.length > 0 && questions.every((q) => picks[q.id] !== undefined)
   return c.json({
     mode: 'quiz',
     date,
-    questions: (quiz?.questions || []).map(({ id, prompt, options, link }) => ({ id, prompt, options, link })),
-    picks: picks || {},
+    questions: questions.map(({ id, prompt, options, link }) => ({ id, prompt, options, link })),
+    picks,
     score: Number(score) || 0,
-    streak: Number(streak?.count) || 0
+    streak: Number(streak?.count) || 0,
+    // Correct count is safe to expose only once the set is fully answered —
+    // earlier it would leak per-question answer indexes indirectly.
+    solved: allAnswered ? questions.filter((q) => picks[q.id] === String(q.answerIndex)).length : undefined
   })
 })
 
