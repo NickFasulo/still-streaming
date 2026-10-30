@@ -243,7 +243,9 @@ export async function resetAll(): Promise<Result> {
 export async function isPostDay(): Promise<boolean> {
   const all = await settings.getAll<{ post_days?: string[] | string }>().catch(() => ({}) as { post_days?: string[] | string })
   const raw = all.post_days
-  const days = Array.isArray(raw) ? raw : typeof raw === 'string' && raw ? [raw] : ['1', '3', '5']
+  // Tue/Thu/Sat so installs alternate with Screen Test's Mon/Wed/Fri and the
+  // quiz never shares a day with this app's own Monday prediction slate.
+  const days = Array.isArray(raw) ? raw : typeof raw === 'string' && raw ? [raw] : ['2', '4', '6']
   return days.includes(String(new Date().getUTCDay()))
 }
 
