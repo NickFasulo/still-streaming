@@ -13,16 +13,25 @@
         min-height: 100vh;
         touch-action: manipulation;
       }
-      #root { max-width: 560px; margin: 0 auto; padding: 12px 14px 18px; }
-      .top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+      #root {
+        max-width: 560px; margin: 0 auto; padding: 12px 14px 18px;
+        min-height: 100vh; display: flex; flex-direction: column;
+      }
+      .main { flex: 1; display: flex; flex-direction: column; }
+      /* Header (brand, title, sub, meta) stays top-pinned; only the card
+         region centers in the leftover space, so card growth can't shift
+         the header. "safe" keeps the card top reachable on short frames. */
+      .quizzone { flex: 1; display: flex; flex-direction: column; justify-content: safe center; min-height: 0; }
+      .top { position: relative; display: flex; justify-content: center; align-items: center; margin-bottom: 4px; }
       .brand { color: #7aa2e0; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; }
       .expand {
+        position: absolute; right: 0; top: 50%; transform: translateY(-50%);
         background: none; border: 1px solid #2f3a49; color: #94a3b8;
         border-radius: 8px; padding: 3px 10px; font-size: 11px; cursor: pointer;
       }
       .expand:hover { border-color: #7aa2e0; color: #7aa2e0; }
-      h1 { font-size: 19px; margin-bottom: 3px; }
-      .sub { color: #94a3b8; font-size: 12.5px; margin-bottom: 12px; }
+      h1 { font-size: 19px; margin-bottom: 3px; text-align: center; }
+      .sub { color: #94a3b8; font-size: 12.5px; margin-bottom: 12px; text-align: center; }
       .card { background: #1a2028; border: 1px solid #2a3442; border-radius: 12px; padding: 14px; margin-bottom: 10px; }
       .prompt { font-size: 15px; font-weight: 600; margin-bottom: 10px; line-height: 1.35; }
       .opt {
@@ -37,16 +46,27 @@
       .opt.correct { background: #1c3a2a; border-color: #38a169; animation: pop 0.35s ease; }
       .opt.wrong { background: #3a1f22; border-color: #c53030; animation: shake 0.3s ease; }
       .opt.dim { opacity: 0.5; }
-      .meta { display: flex; justify-content: space-between; color: #94a3b8; font-size: 12px; margin-bottom: 10px; }
-      .link { display: inline-block; margin-top: 8px; color: #7aa2e0; font-size: 13px; }
+      .meta { display: flex; justify-content: center; gap: 18px; color: #94a3b8; font-size: 12px; margin-bottom: 10px; }
+      .link { display: inline-block; margin: 8px 0 10px; color: #7aa2e0; font-size: 13px; }
       .primary {
         background: #2b6cb0; color: #fff; border: none; border-radius: 10px;
         padding: 11px 18px; font-size: 14px; font-weight: 600; cursor: pointer; width: 100%;
+        transition: filter 0.15s, transform 0.08s;
       }
+      .primary:hover:not(:disabled) { filter: brightness(1.1); }
+      .primary:active:not(:disabled) { transform: scale(0.98); }
       .primary:disabled { opacity: 0.5; cursor: default; }
       .score-big { font-size: 30px; font-weight: 700; color: #7aa2e0; animation: pop 0.45s ease 0.1s both; }
       .center { text-align: center; }
-      .row { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid #232b36; font-size: 14px; }
+      .row { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid #232b36; font-size: 14px; animation: rise 0.25s ease both; }
+      .row.me { color: #7aa2e0; font-weight: 600; }
+      /* Animated expand/collapse: grid rows transition lets the card grow
+         smoothly without measuring heights in JS. */
+      .boardwrap { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.35s ease; }
+      .boardwrap.open { grid-template-rows: 1fr; }
+      /* Max 10 rows can exceed the 512px inline frame — scroll inside the
+         region so the card itself never overflows. */
+      .boardinner { overflow: hidden auto; min-height: 0; max-height: 236px; }
       .stage { position: relative; }
       .scorewrap { position: relative; }
       .plus {
@@ -54,11 +74,25 @@
         color: #38a169; font-weight: 700; font-size: 12px; font-style: normal;
         animation: floatup 0.9s ease-out both;
       }
-      .done { position: relative; overflow: hidden; animation: rise 0.3s ease both; }
+      .done { position: relative; overflow: hidden; animation: rise 0.3s ease both; text-align: center; }
       .confetti i {
         position: absolute; top: -10px; width: 6px; height: 10px; border-radius: 2px;
         animation: drop 1.7s ease-in forwards;
       }
+      /* Speed bonus meter: matches the server's 8s full-award window then
+         drains to the 25pt floor over the remaining 12s of the decay curve. */
+      .bonustrack { height: 3px; background: #232b36; border-radius: 2px; margin-bottom: 12px; overflow: hidden; }
+      .bonusfill {
+        height: 100%; border-radius: 2px; transform-origin: left;
+        background: linear-gradient(90deg, #7aa2e0 60%, #c53030);
+        animation: drain 20s linear forwards;
+      }
+      @keyframes drain { 0%, 40% { transform: scaleX(1); } 100% { transform: scaleX(0.25); } }
+      /* Reveal zone (link + Next): grid-rows transition expands it smoothly
+         instead of the button popping in and growing the card instantly. */
+      .revealwrap { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.3s ease; }
+      .revealwrap.open { grid-template-rows: 1fr; }
+      .revealinner { overflow: hidden; min-height: 0; }
       .qcard { animation: qin 0.3s ease both; }
       .qcard.exit {
         position: absolute; top: 0; left: 0; right: 0;
@@ -72,7 +106,6 @@
       @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
       @keyframes floatup { 0% { opacity: 0; transform: translateY(2px); } 25% { opacity: 1; } 100% { opacity: 0; transform: translateY(-14px); } }
       @keyframes drop { to { transform: translateY(340px) rotate(540deg); } }
-      .next { margin-top: 4px; animation: rise 0.25s ease both; }
       /* The slate (up to 8 rows) scrolls inside its own region so the Lock-in
          button stays visible even when the inline view is short. */
       .slate { max-height: 296px; overflow-y: auto; }
@@ -80,12 +113,13 @@
       .vote-opt.on { border-color: #2b6cb0; background: #243449; }
       .vote-opt input { accent-color: #2b6cb0; width: 15px; height: 15px; flex-shrink: 0; }
       .toast { color: #68d391; font-size: 13px; margin-top: 6px; animation: rise 0.25s ease both; }
+      .err { color: #fc8181; font-size: 13px; margin-top: 6px; }
       @media (prefers-reduced-motion: reduce) {
-        .qcard, .qcard.exit, .opt.correct, .opt.wrong, .next, .plus, .done, .score-big, .toast { animation: none !important; }
+        .qcard, .qcard.exit, .opt.correct, .opt.wrong, .plus, .done, .score-big, .row, .toast { animation: none !important; }
+        .boardwrap, .revealwrap { transition: none; }
         .confetti { display: none; }
       }
-      .err { color: #fc8181; font-size: 13px; margin-top: 6px; }
-      .footer { color: #64748b; font-size: 11px; text-align: center; margin-top: 6px; }
+      .footer { color: #64748b; font-size: 11px; text-align: center; margin-top: 14px; }
       .footer a { color: #94a3b8; }
       /* Inline posts can render well under the 512px request on the mobile
          app — compress so a full question still fits without scrolling. */
@@ -98,7 +132,6 @@
         .prompt { font-size: 14px; margin-bottom: 8px; }
         .opt { padding: 8px 11px; margin-bottom: 5px; }
         .primary { padding: 9px 16px; }
-        .next { margin-top: 2px; }
         .slate { max-height: 190px; }
       }
     </style>

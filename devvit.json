@@ -37,6 +37,50 @@
       ]
     }
   },
+  "settings": {
+    "subreddit": {
+      "post_days": {
+        "type": "multiSelect",
+        "label": "Quiz post days",
+        "helpText": "Days of the week (UTC) the daily quiz post is created.",
+        "options": [
+          {
+            "label": "Monday",
+            "value": "1"
+          },
+          {
+            "label": "Tuesday",
+            "value": "2"
+          },
+          {
+            "label": "Wednesday",
+            "value": "3"
+          },
+          {
+            "label": "Thursday",
+            "value": "4"
+          },
+          {
+            "label": "Friday",
+            "value": "5"
+          },
+          {
+            "label": "Saturday",
+            "value": "6"
+          },
+          {
+            "label": "Sunday",
+            "value": "0"
+          }
+        ],
+        "defaultValue": [
+          "1",
+          "3",
+          "5"
+        ]
+      }
+    }
+  },
   "scheduler": {
     "tasks": {
       "daily-quiz": {
@@ -75,7 +119,17 @@
         "forUserType": "moderator",
         "location": "subreddit",
         "endpoint": "/internal/menu/resolve-now"
+      },
+      {
+        "label": "Reset all quiz data",
+        "description": "Dev only: clear all stored quiz, slate, vote, score, streak and post state",
+        "forUserType": "moderator",
+        "location": "subreddit",
+        "endpoint": "/internal/menu/reset-now"
       }
     ]
+  },
+  "dev": {
+    "subreddit": "still_streaming_dev"
   }
 }
