@@ -12,7 +12,7 @@ const h = vi.hoisted(() => {
     userId?: string
     postData?: unknown
   } = {}
-  const posts: { id: string; title?: string; postData?: unknown }[] = []
+  const posts: { id: string; title?: string; postData?: unknown; text?: string }[] = []
   const comments: { id: string; text: string }[] = []
   let postN = 0
   const state = {
@@ -44,9 +44,9 @@ vi.mock('@devvit/web/server', () => ({
   context: h.state.context,
   settings: { getAll: async () => ({ post_days: h.state.postDays }) },
   reddit: {
-    submitCustomPost: async (opts: { title?: string; postData?: unknown }) => {
+    submitCustomPost: async (opts: { title?: string; postData?: unknown; textFallback?: { text: string } }) => {
       const id = h.nextPostId()
-      h.state.posts.push({ id, title: opts.title, postData: opts.postData })
+      h.state.posts.push({ id, title: opts.title, postData: opts.postData, text: opts.textFallback?.text })
       return { id }
     },
     submitComment: async (opts: { id: string; text: string }) => {
@@ -89,6 +89,7 @@ vi.mock('@devvit/web/server', () => ({
 import {
   awardFor,
   createQuizPost,
+  createSlatePost,
   getLeaderboard,
   getState,
   isPostDay,
@@ -271,6 +272,34 @@ describe('createQuizPost', () => {
     expect(h.state.hashes.get('ss:posts')?.has(`${ck}|t5_sub`)).toBe(true)
     expect(h.state.store.has(`ss:quiz:${todayUtc()}:v2`)).toBe(true)
     expect(h.state.posts[1].postData).toMatchObject({ mode: 'quiz', v: 'v2' })
+  })
+})
+
+describe('createSlatePost', () => {
+  it('posts the payload title and digest markdown when the API ships them', async () => {
+    stubFetch({
+      ...SLATE,
+      title: 'Still Streaming? Which Netflix titles leave this week?',
+      text: 'Predict which titles leave **Netflix** this week:\n\n- Gone Girl\n- Staying Put'
+    })
+    expect(await createSlatePost()).toEqual({ status: 'posted' })
+    expect(h.state.posts[0].title).toBe('Still Streaming? Which Netflix titles leave this week?')
+    expect(h.state.posts[0].text).toContain('- Gone Girl')
+  })
+
+  it('falls back to the locally built title and blurb on older payloads', async () => {
+    stubFetch(SLATE)
+    expect(await createSlatePost()).toEqual({ status: 'posted' })
+    expect(h.state.posts[0].title).toBe('Prediction round: what leaves Netflix this week?')
+    expect(h.state.posts[0].text).toContain('**Prediction round**')
+  })
+
+  it('dedupes per week and skips when the slate is empty', async () => {
+    stubFetch(SLATE)
+    expect(await createSlatePost()).toEqual({ status: 'posted' })
+    expect(await createSlatePost()).toEqual({ status: 'skipped', detail: 'already posted this week' })
+    stubFetch({ ...SLATE, slate: [] })
+    expect(await createSlatePost(true)).toEqual({ status: 'failed', detail: 'no slate payload' })
   })
 })
 

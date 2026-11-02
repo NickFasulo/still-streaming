@@ -28,6 +28,12 @@ export interface WeeklyPayload {
   provider: string
   providerLabel: string
   slate: SlateEntry[]
+  // Digest-style fields the API ships alongside the raw slate, matching the
+  // {title, text, url, key} contract the broadcast posts already use.
+  title?: string
+  text?: string
+  url?: string
+  key?: string
 }
 
 export interface ResolvePayload {

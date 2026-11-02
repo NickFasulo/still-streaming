@@ -127,12 +127,16 @@ export async function createSlatePost(force = false): Promise<Result> {
 
   const post = await reddit.submitCustomPost({
     subredditName: subName(),
-    title: `Prediction round: what leaves ${payload.providerLabel} this week?`,
+    title: payload.title ?? `Prediction round: what leaves ${payload.providerLabel} this week?`,
     entry: 'default',
     postData: { mode: 'predict', week, ...(v ? { v } : {}) },
     styles: { heightPixels: 512, backgroundColor: '#14181c' },
     textFallback: {
-      text: `**Prediction round** — which titles leave ${payload.providerLabel} this week? Vote on new Reddit or the app. Data: https://www.galaxymovies.app`
+      // The API's digest-style markdown (provider header + bulleted slate +
+      // provider link) is what old Reddit shows in place of the widget.
+      text:
+        payload.text ??
+        `**Prediction round** — which titles leave ${payload.providerLabel} this week? Vote on new Reddit or the app. Data: ${GM}`
     }
   })
   await redis.hSet(postsHashKey, { [postField(`s:${week}${v ? `:${v}` : ''}`, subId())]: post.id })
