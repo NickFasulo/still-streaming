@@ -75,7 +75,7 @@ app.post('/internal/scheduler/weekly-resolve', async (c) => {
   return c.json<TaskResponse>({ status: 'ok' }, 200)
 })
 
-// ---------- menu + external triggers ----------
+// ---------- menu triggers ----------
 
 const menuHandler = (fn: () => Promise<Result>) => async (c: { json: (b: unknown, s: number) => Response }) => {
   try {
@@ -88,18 +88,9 @@ const menuHandler = (fn: () => Promise<Result>) => async (c: { json: (b: unknown
   }
 }
 
-const externalHandler = (fn: () => Promise<Result>) => async (c: { json: (b: unknown, s: number) => Response }) => {
-  const result = await fn()
-  return c.json(result, result.status === 'failed' ? 500 : 200)
-}
-
 app.post('/internal/menu/quiz-now', menuHandler(() => createQuizPost(true)))
 app.post('/internal/menu/slate-now', menuHandler(() => createSlatePost(true)))
 app.post('/internal/menu/resolve-now', menuHandler(() => resolveWeek()))
 app.post('/internal/menu/reset-now', menuHandler(resetAll))
-
-app.post('/external/quiz-now', externalHandler(() => createQuizPost(true)))
-app.post('/external/slate-now', externalHandler(() => createSlatePost(true)))
-app.post('/external/resolve-now', externalHandler(() => resolveWeek()))
 
 serve({ fetch: app.fetch, createServer, port: getServerPort() })

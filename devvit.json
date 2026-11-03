@@ -11,21 +11,7 @@
   },
   "server": {
     "dir": "dist/server",
-    "entry": "index.cjs",
-    "externalEndpoints": {
-      "quiz-now": {
-        "endpoint": "/external/quiz-now",
-        "scopes": ["install", "global"]
-      },
-      "slate-now": {
-        "endpoint": "/external/slate-now",
-        "scopes": ["install", "global"]
-      },
-      "resolve-now": {
-        "endpoint": "/external/resolve-now",
-        "scopes": ["install", "global"]
-      }
-    }
+    "entry": "index.cjs"
   },
   "permissions": {
     "reddit": true,
