@@ -71,7 +71,7 @@
     "tasks": {
       "daily-quiz": {
         "endpoint": "/internal/scheduler/daily-quiz",
-        "cron": "0 15 * * *"
+        "cron": "0 15 * * 1,3,5"
       },
       "weekly-slate": {
         "endpoint": "/internal/scheduler/weekly-slate",
