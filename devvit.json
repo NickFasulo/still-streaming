@@ -75,7 +75,7 @@
       },
       "weekly-slate": {
         "endpoint": "/internal/scheduler/weekly-slate",
-        "cron": "30 15 * * 1"
+        "cron": "30 15 * * 2"
       },
       "weekly-resolve": {
         "endpoint": "/internal/scheduler/weekly-resolve",
